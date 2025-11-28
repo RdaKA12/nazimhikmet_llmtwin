@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nazım Hikmet Dijital İkizi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>Nazım Hikmet Dijital İkizi</h1>
+        <p>Sağ tarafta Nazım olarak cevaplayan bir asistana soru sor.</p>
+      </header>
+
+      <main>
+        <section class="chat">
+          <div id="messages"></div>
+        </section>
+
+        <section class="controls">
+          <label for="question">Soru:</label>
+          <textarea id="question" rows="3" placeholder="Nazım'a ne sormak istersin?"></textarea>
+          <button id="send">Sor</button>
+          <div id="status"></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const apiBase = "{{ api_base }}";
+      const messagesEl = document.getElementById("messages");
+      const questionEl = document.getElementById("question");
+      const sendBtn = document.getElementById("send");
+      const statusEl = document.getElementById("status");
+
+      function appendMessage(role, text) {
+        const item = document.createElement("div");
+        item.className = "msg " + role;
+        item.innerText = text;
+        messagesEl.appendChild(item);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      async function askNazim() {
+        const q = questionEl.value.trim();
+        if (!q) return;
+
+        appendMessage("user", q);
+        questionEl.value = "";
+        statusEl.innerText = "Düşünüyor...";
+
+        try {
+          const resp = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: q,
+              k: 5,
+              max_tokens: 512,
+              language: "tr",
+            }),
+          });
+
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || "İstek başarısız oldu.");
+          }
+
+          const data = await resp.json();
+          appendMessage("assistant", data.answer || "(Boş cevap)");
+        } catch (err) {
+          appendMessage("assistant", "Hata: " + err.message);
+        } finally {
+          statusEl.innerText = "";
+        }
+      }
+
+      sendBtn.addEventListener("click", askNazim);
+      questionEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          askNazim();
+        }
+      });
+    </script>
+  </body>
+  </html>
+
