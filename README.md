@@ -71,12 +71,6 @@ This project builds a small “digital twin” for Nazim Hikmet: it crawls poem 
   - `OLLAMA_API_URL=http://localhost:11434`
   Recommended: use the persona model `nazim-nazim3.1` created from `Modelfile.nazim`.
 
-- **OpenAI-compatible backends (optional):**
-  - `LLM_PROVIDER=openai_compat`
-  - `OPENAI_COMPAT_URL=http://your-host:your-port/v1`
-  - `LLM_MODEL_ID=<model_id_exposed_by_server>`
-  - `OPENAI_API_KEY=<token_if_required>`
-
 ## Source configuration
 - All sources are defined in `configs/sources.yaml`.
 - `SAFE_MODE` (from env or file) can be used to shorten texts to safer summaries.
