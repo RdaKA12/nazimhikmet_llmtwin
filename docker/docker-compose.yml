@@ -1,0 +1,27 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  crawler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.crawler  # path to crawler Dockerfile
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URL: mongodb://mongo:27017  # reachable from the container
+      MONGO_DB: digital_twin
+      SAFE_MODE: "false"
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["python", "-m", "src.etl.run_pipeline"]
+    restart: unless-stopped
+
+volumes:
+  mongo_data:

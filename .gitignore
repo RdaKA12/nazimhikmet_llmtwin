@@ -1,0 +1,16 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Environment files
+venv/
+.venv/
+.env
+*.env
+
+# Local data dumps
+digital_twin.documents.json
+*.jsonl
+
+# Temporary files
+tmp_*

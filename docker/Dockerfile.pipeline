@@ -1,0 +1,37 @@
+﻿FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# system deps for pdf & ocr & build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential poppler-utils tesseract-ocr git curl \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+
+# Prefer Poetry if pyproject.toml exists; otherwise use requirements.txt
+RUN set -eux; \
+    for file in pyproject.toml poetry.lock requirements.txt; do \
+        if [ -f "/app_src/${file}" ]; then \
+            cp "/app_src/${file}" "/app/${file}"; \
+        fi; \
+    done || true
+
+RUN set -eux; \
+    if [ -f "pyproject.toml" ]; then \
+        pip install --no-cache-dir poetry && \
+        poetry config virtualenvs.create false && \
+        poetry install --without dev --no-interaction --no-ansi; \
+    elif [ -f "requirements.txt" ]; then \
+        pip install --no-cache-dir -r requirements.txt; \
+    else \
+        pip install --no-cache-dir \
+          zenml==0.61.0 pymongo qdrant-client pydantic pandas numpy \
+          beautifulsoup4 requests pypdf unidecode rapidfuzz sentence-transformers; \
+    fi
+
+COPY . /app_src
+RUN cp -a /app_src/. /app
+

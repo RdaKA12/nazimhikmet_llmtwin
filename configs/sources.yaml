@@ -1,0 +1,97 @@
+﻿sources:
+  - name: "SiirArsivi - Naz\u0131m Hikmet"
+    kind: "poem_page"
+    base: "https://siirarsivi.net"
+    list_url: "https://siirarsivi.net/sairlerimiz/yeni-siir/cumhuriyet-siiri/nazim-hikmet-ran/"
+    enabled: true
+    respect_robots: true
+    rate_limit_per_minute: 8
+    extract:
+      index_card_css: "main ul li, .entry-content ul li, .wp-block-list li, article ul li, .post-content ul li"
+      detail_link_css: "a"
+      title_css: ".entry-content h1, .entry-content h2, .entry-content strong:first-child, h1.entry-title, h1.post-title, h1, h2"
+      full_css: "div.entry-content pre, div.entry-content p, article .entry-content pre, article .entry-content p, article .post-content p, article p"
+    author: "Naz\u0131m Hikmet"
+
+  - name: "SiirSitesi - Naz\u0131m Hikmet"
+    kind: "poem_page"
+    base: "https://siir.sitesi.web.tr"
+    list_url: "https://siir.sitesi.web.tr/nazim-hikmet/"
+    enabled: true
+    respect_robots: true
+    rate_limit_per_minute: 6
+    extract:
+      index_card_css: ".content .siir"
+      detail_link_css: "a"
+      title_css: ".content .topic h3, .content h1, h1, h2"
+      full_css: ".content .text p"
+    author: "Naz\u0131m Hikmet"
+
+  - name: "SecmeHikayeler - Naz\u0131m Hikmet (Hikayeler)"
+    kind: "poem_page"
+    base: "https://secmehikayeler.com"
+    list_url: "https://secmehikayeler.com/konular/nazim-hikmet/"
+    enabled: true
+    respect_robots: true
+    rate_limit_per_minute: 6
+    # Bu kaynak 'hikaye' olduğundan work_type'ı story yapalım:
+    work_type: "story"
+    paging:
+      max_pages: 10
+      # WP'de sık görülen ileri butonları:
+      next_css: "a.next, .nav-links a.next, .nav-previous a, .pagination .next, .page-numbers.next"
+    extract:
+      # Kategori/listede başlık linkleri: WP h2.entry-title ya da article içi başlıklar
+      index_card_css: "li.post-item, h2.post-title, h3.post-title, article .entry-title, article header h2, .post-list article"
+      detail_link_css: "a"
+      # İçerik içi başlıkları öncele, ardından klasik h1:
+      title_css: ".post-title, .entry-content h1, .entry-content h2, h1.entry-title, h1.post-title, h1, h2"
+      # Paragraflar öncelik; fallback olarak article içi p:
+      full_css: "article .entry-content p, article .entry-content h3, .single-content p, .post-content p, .entry-content p, .entry-content h3, .entry-content li, article p"
+    author: "Naz\u0131m Hikmet"
+
+  - name: "Naz\u0131m Hikmet PDF (Alt\u0131n\u0131\u015F\u0131k)"
+    kind: "pdf_poems"
+    base: "https://www.mustafaaltinisik.org.uk"
+    list_url: "https://www.mustafaaltinisik.org.uk/s-nazimhikmet.pdf"
+    enabled: true
+    respect_robots: false
+    rate_limit_per_minute: 2
+    collection: "Mustafa Altinisik PDF Derlemesi"
+    document_type: "poem"
+    work_type: "poem"
+    lang: "tr"
+
+  - name: "Nazim Hikmet PDF - Yasamak Guzel Sey Be Kardesim"
+    kind: "pdf_poems"
+    seeds:
+      - "http://insulaelibertatis.com/KitaKita/Nazim_Hikmet-17_Yasamak_Guzel_Sey_Be_Kardesim_Adam_Yayinlari.pdf"
+    enabled: true
+    respect_robots: false
+    rate_limit_per_minute: 2
+    collection: "Yasamak Guzel Sey Be Kardesim (Adam Yayinlari)"
+    document_type: "prose"
+    work_type: "novel"
+    lang: "tr"
+    author: "Nazim Hikmet"
+    allow_http_fallback: true
+    fetch_timeout: [30, 240]
+
+  - name: "Nazim Hikmet PDF - Kan Konusmaz"
+    kind: "pdf_poems"
+    seeds:
+      - "https://leftkup.com/wp-content/uploads/2018/06/Naz%C4%B1m-Hikmet-Kan-Konu%C5%9Fmaz-devkup.pdf"
+    enabled: true
+    respect_robots: false
+    rate_limit_per_minute: 2
+    collection: "Kan Konusmaz (Devkup)"
+    document_type: "prose"
+    work_type: "novel"
+    lang: "tr"
+    author: "Nazim Hikmet"
+    allow_http_fallback: true
+    fetch_timeout: [30, 240]
+    verify_ssl: false
+
+
+
