@@ -92,6 +92,24 @@ services:
       retries: 60
       start_period: 1m
 
+  web:
+    image: nazim-twin-pipeline:latest
+    container_name: web
+    depends_on:
+      api:
+        condition: service_started
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      - NAZIM_API_URL=http://api:8000
+    volumes:
+      - .:/app
+      - hf_cache:/root/.cache
+    command: [ "bash", "-lc", "pip install --no-cache-dir -r requirements-api.txt || true; uvicorn src.ui.web:app --host 0.0.0.0 --port 8090" ]
+    ports:
+      - "${WEB_PORT:-8090}:8090"
+
 volumes:
   zenml_data:
   mongo_data:
