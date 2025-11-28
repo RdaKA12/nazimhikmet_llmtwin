@@ -1,97 +1,133 @@
-# Nazim Hikmet Dijital Ikizi
+# Nazim Hikmet Digital Twin
 
-Nazim Hikmet ile ilgili siir/haber/biyografi iceriklerini toplayan, temizleyen, MongoDB + Qdrant'a yukleyen ve Ollama (veya OpenAI-compat) uzerinden RAG cevaplari ureten bir proje. Docker Compose ile Mongo, Qdrant, ZenML pipeline'i ve API tek komutta kalkar; istersen ayrica basit bir web chat arayuzu calistirabilirsin.
+This project builds a small “digital twin” for Nazim Hikmet: it crawls poem / news / biography content, normalizes and stores it in MongoDB + Qdrant, and serves RAG-style answers via Ollama (or any OpenAI-compatible endpoint). Docker Compose brings up Mongo, Qdrant, the ZenML pipeline and the API in one go; you can also use a simple web chat UI on top.
 
-> **Telif uyarisi:** Nazim Hikmet eserleri 2033'e kadar telif altinda. SAFE_MODE/ozetleme ayarlari olsa da, kamuya acmadan once yerel hukuka uyumu kontrol et.
+> **Copyright notice:** Nazim Hikmet’s works are under copyright until 2033. This repo does **not** contain full copyrighted texts, corpus JSON dumps, embedding collections or trained model weights; these are excluded via `.gitignore`. Keep your data local and ensure compliance with your local law before exposing anything publicly.
 
-## Mimari (kisaca)
-- **Crawler/ETL (ZenML pipeline):** `configs/sources.yaml`'dan kaynaklari okuyup crawl -> normalize -> dedup -> store (Mongo) -> embed (Qdrant) calisir. `docker compose` ile pipeline container'i otomatik tetiklenir.
-- **Veri katmani:** MongoDB (ham/dedup dokumanlar) + Qdrant (embedding'ler).
-- **LLM/RAG:** FastAPI `src/api/app.py` uzerinden `/ask`; varsayilan provider Ollama. Persona icin Modelfile: `Modelfile.nazim`.
-- **Web UI:** Kucuk bir FastAPI + Jinja tek sayfa chat (port varsayilan 8090).
-- **Fine-tune (CPT):** `src/zen/pipelines/finetune_pipeline.py` GPU ortaminda corpus hazirlayip HF modeli egitir.
+## Architecture (overview)
+- **Crawler / ETL (ZenML pipeline):** Reads sources from `configs/sources.yaml` and runs crawl → normalize → dedup → store (Mongo) → embed (Qdrant). The `pipeline` container is triggered automatically by `docker compose`.
+- **Data layer:** MongoDB stores raw / deduplicated documents; Qdrant stores vector embeddings.
+- **LLM / RAG API:** FastAPI app in `src/api/app.py` exposes `/health` and `/ask`. Default provider is Ollama. The Nazim persona is configured in `Modelfile.nazim`.
+- **Web UI:** Small FastAPI + Jinja single-page chat UI (default port `8090`).
+- **Fine-tune (CPT):** `src/zen/pipelines/finetune_pipeline.py` prepares a text corpus and runs continued pretraining with Hugging Face Transformers (GPU recommended).
 
-## Hizli baslangic (Docker ile)
-1) **Gereksinimler:** Docker + Docker Compose, Ollama (LLM icin).  
-2) **Env hazirla:**  
+## Quick start (Docker)
+1) **Requirements:** Docker, Docker Compose, and Ollama (for the LLM).
+
+2) **Prepare environment file:**
    ```bash
    cp .env.example .env
    ```
-   Onemli degiskenler:  
-   - `MONGO_URL`, `QDRANT_URL`, `QDRANT_COLLECTION`  
-   - `LLM_PROVIDER=ollama` (varsayilan)  
-   - `LLM_MODEL_ID=nazim-nazim3.1` (tavsiye) veya elindeki baska Ollama modeli  
+   Key variables:
+   - `MONGO_URL`, `QDRANT_URL`, `QDRANT_COLLECTION`
+   - `LLM_PROVIDER=ollama` (default)
+   - `LLM_MODEL_ID=nazim-nazim3.1` (recommended) or any other local Ollama model
    - `OLLAMA_API_URL=http://localhost:11434`
-   - Web UI icin: `WEB_PORT=8090` (varsayilan)
+   - Web UI: `WEB_PORT=8090` (default)
 
-3) **Nazim personasini Ollama'da olustur (tavsiye):**  
+3) **Create the Nazim persona model in Ollama (recommended):**
    ```bash
    ollama create nazim-nazim3.1 -f Modelfile.nazim
    ```
-   Ardindan `.env`'de `LLM_MODEL_ID=nazim-nazim3.1` kullan.
+   Then set `LLM_MODEL_ID=nazim-nazim3.1` in `.env`.
 
-4) **Servisleri calistir:**  
+4) **Start services:**
    ```bash
    docker compose up -d --build
    ```
+   You should now have:
    - ZenML server: `http://localhost:8237`
    - API: `http://localhost:8000`
    - Qdrant: `http://localhost:6333`
-   Pipeline container `src.ui.zen_run` ile crawl->embed akisini tetikler. Log icin:  
+   - Web UI: `http://localhost:8090`
+
+   The `pipeline` container runs `src.ui.zen_run` and executes the crawl → embed pipeline. To follow logs:
    ```bash
    docker compose logs -f pipeline
    ```
 
-5) **API test:**  
+5) **API smoke test:**
    ```bash
-   curl -X POST "http://localhost:8000/ask" ^
-     -H "Content-Type: application/json" ^
-     -d "{ \"question\": \"Nazim'in umut anlayisini anlat\", \"k\": 5, \"language\": \"tr\" }"
+   curl -X POST "http://localhost:8000/ask" \
+     -H "Content-Type: application/json" \
+     -d '{ "question": "Can you explain Nazim Hikmet'\''s view on hope?", "k": 5, "language": "tr" }'
    ```
 
-6) **Web chat (istege bagli):** Ayrica host'ta kucuk UI'yi calistir:  
-   ```bash
-   uvicorn src.ui.web:app --host 0.0.0.0 --port %WEB_PORT%
-   ```  
-   Sonra tarayici: `http://localhost:8090` (veya belirledigin port). `NAZIM_API_URL` env'i ile arka API adresini degistirebilirsin (varsayilan `http://localhost:8000`).
+6) **Web chat:**
+   - With the `web` service defined in `docker-compose.yml`, just open:
+     - `http://localhost:8090`
+   - The UI talks to the backend API via `NAZIM_API_URL`:
+     - Inside Docker: `http://api:8000`
+     - On host (if you run the UI directly): defaults to `http://localhost:8000`
+   - Optional: run the UI directly for development:
+     ```bash
+     uvicorn src.ui.web:app --host 0.0.0.0 --port ${WEB_PORT:-8090}
+     ```
 
-## LLM secenekleri
-- **Ollama (varsayilan):** `LLM_PROVIDER=ollama`, `LLM_MODEL_ID=<ollama-model>`, `OLLAMA_API_URL=http://localhost:11434`. Tavsiye: `nazim-nazim3.1` personasini Modelfile'dan olustur.
+## LLM options
+- **Ollama (default):**
+  - `LLM_PROVIDER=ollama`
+  - `LLM_MODEL_ID=<ollama-model-name>`
+  - `OLLAMA_API_URL=http://localhost:11434`
+  Recommended: use the persona model `nazim-nazim3.1` created from `Modelfile.nazim`.
 
-## Kaynak konfigurasyonu
-- Tum kaynaklar `configs/sources.yaml` icinde.  
-- `SAFE_MODE` (env veya dosya) true ise metinler kisa ozetlere indirilir.  
-- Yeni site eklemek icin dosyaya yeni blok eklemek yeterli.
+- **OpenAI-compatible backends (optional):**
+  - `LLM_PROVIDER=openai_compat`
+  - `OPENAI_COMPAT_URL=http://your-host:your-port/v1`
+  - `LLM_MODEL_ID=<model_id_exposed_by_server>`
+  - `OPENAI_API_KEY=<token_if_required>`
+
+## Source configuration
+- All sources are defined in `configs/sources.yaml`.
+- `SAFE_MODE` (from env or file) can be used to shorten texts to safer summaries.
+- To add a new site, add a new source block with the appropriate `kind` and CSS selectors.
 
 ## Fine-tune (CPT) pipeline
-- GPU gerekir. Docker pipeline container'i icinde calistir:  
+- Requires a GPU for practical training.
+- Run inside the `pipeline` container:
   ```bash
   docker compose exec pipeline bash -lc "python -m src.ui.zen_finetune"
   ```
-  Env ile ayarla: `BASE_MODEL`, `OUTPUT_DIR`, `CORPUS_DIR`, `INPUT_JSON` (varsayilan `digital_twin.documents.json`).
-- Manuel calistirmak istersen:  
+  Controlled via env variables:
+  - `BASE_MODEL`
+  - `OUTPUT_DIR`
+  - `CORPUS_DIR`
+  - `INPUT_JSON` (default `digital_twin.documents.json`, which is **not** committed)
+
+- To run manually on the host:
   ```bash
   python -m src.fine_tune.prepare_corpus
   pip install -r requirements-train.txt
   python -m src.fine_tune.train_cpt
   ```
 
-## Kullanisli komutlar
-- Tum stack: `docker compose up -d --build`
-- Log: `docker compose logs -f pipeline` veya `docker compose logs -f api`
-- Test: `pytest`
+## Useful commands
+- Bring everything up:
+  ```bash
+  docker compose up -d --build
+  ```
+- Follow logs:
+  ```bash
+  docker compose logs -f pipeline
+  docker compose logs -f api
+  ```
+- Run tests:
+  ```bash
+  pytest
+  ```
 
-## Dizin ozeti
-- `configs/` – kaynak ayarlari (`sources.yaml`)
-- `docker/` – Dockerfile'lar (pipeline)
-- `src/api/` – FastAPI `/health`, `/ask`
-- `src/ui/web.py` – basit web chat UI (port varsayilan 8090)
-- `src/zen/` – ZenML pipeline'lari (crawl, finetune) ve adimlari
-- `src/etl/` – embedding, chunking, store/dedup/norm
-- `src/crawler/` – site-tipine gore crawler'lar
-- `src/fine_tune/` – corpus hazirlama + CPT egitim script'leri
-- `static/`, `templates/` – web UI statik dosyalari
+## Directory overview
+- `configs/` – source configuration (`sources.yaml`)
+- `docker/` – Dockerfiles for the pipeline image
+- `src/api/` – FastAPI app (`/health`, `/ask`)
+- `src/ui/web.py` – web chat UI (default port 8090)
+- `src/zen/` – ZenML pipelines (crawl, finetune) and steps
+- `src/etl/` – embedding, chunking, store/dedup/normalize
+- `src/crawler/` – crawlers per site/content type
+- `src/fine_tune/` – corpus preparation + CPT training scripts
+- `static/`, `templates/` – web UI static assets
 
-## Telif ve lisans
-- Kodun kendisi icin MIT veya kurum politikasina uygun bir lisans ekleyebilirsin.  
-- Cekilen iceriklerin telif haklari orijinal sahiplerine aittir; paylasmadan once kontrol et.
+## License and copyright
+- The code in this repository is licensed under the MIT License (see `LICENSE`).
+- All crawled or generated textual content based on external sources remains the copyright of the original authors and publishers. Do not redistribute copyrighted material unless you have the right to do so.
+

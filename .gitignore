@@ -8,9 +8,21 @@ venv/
 .env
 *.env
 
-# Local data dumps
+# Local data / corpora / dumps (telifli icerik disarida kalsin)
+data/
+outputs/
 digital_twin.documents.json
 *.jsonl
+*.db
+*.sqlite
+*.parquet
+*.pt
+*.bin
+*.ckpt
+*.h5
+*.onnx
 
-# Temporary files
+# Temporary and scratch files
 tmp_*
+*.tmp
+*.log
